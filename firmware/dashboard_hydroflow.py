@@ -1,3 +1,10 @@
+"""
+Proyecto: HydroFlow IoT — Servidor Local de Telemetría, Persistencia CSV y Dashboard Web
+Curso: TEI201 — Taller de Diseño en Ingeniería (Universidad Adolfo Ibáñez) - Avance #3
+Descripción: Recibe datos seriales desde Arduino Nano a 1 Hz, almacena registros históricos
+             en CSV y despliega un dashboard local para diagnóstico y proyección energética.
+"""
+
 import csv
 import json
 import os
@@ -8,11 +15,13 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import serial
 import serial.tools.list_ports
 
+# --- PARÁMETROS DE CONFIGURACIÓN DEL SERVIDOR Y ALMACENAMIENTO ---
 ARCHIVO_CSV = "datos_hydroflow.csv"
 PUERTO_WEB = 8000
 BAUDRATE = 9600
 CAPACIDAD_BATERIA_REF_MWH = 7400.0  # Referencia teórica: celda Li-Ion 3.7V / 2000mAh
 
+# --- ESTADO COMPARTIDO EN MEMORIA PARA EL DASHBOARD EN TIEMPO REAL ---
 estado = {
     "conectado": False,
     "puerto": "Buscando Arduino...",
@@ -31,7 +40,9 @@ estado = {
 }
 lock = threading.Lock()
 
+
 def inicializar_csv():
+    """Crea el archivo CSV con sus encabezados si aún no existe en el directorio."""
     if not os.path.exists(ARCHIVO_CSV):
         with open(ARCHIVO_CSV, mode="w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([
@@ -39,7 +50,12 @@ def inicializar_csv():
                 "voltaje_inst_v", "voltaje_1min_v", "pot_estimada_mw", "energia_acumulada_mwh"
             ])
 
+
 def analizar_rendimiento(caudal, v_inst, pot_est):
+    """
+    Calcula proyecciones de almacenamiento energético y genera alertas diagnósticas
+    para la toma de decisiones en función del caudal (L/min), voltaje (V) y potencia (mW).
+    """
     # Proyección de almacenamiento con 30 min (0.5 h) de uso diario de agua en el hogar
     almacenamiento_dia = pot_est * 0.5
     # Horas de flujo continuo necesarias para llenar una celda de referencia de 7.400 mWh
@@ -60,7 +76,9 @@ def analizar_rendimiento(caudal, v_inst, pot_est):
 
     return almacenamiento_dia, horas_carga, tipo, msg
 
+
 def buscar_puerto_arduino():
+    """Escanea los puertos seriales USB disponibles y retorna el puerto asociado al Arduino Nano."""
     puertos = list(serial.tools.list_ports.comports())
     for p in puertos:
         desc = (p.description or "").lower()
@@ -68,7 +86,12 @@ def buscar_puerto_arduino():
             return p.device
     return puertos[0].device if puertos else None
 
+
 def leer_serial_continuo():
+    """
+    Hilo en segundo plano que lee tramas CSV desde el puerto serial a 1 Hz,
+    integra la energía acumulada, actualiza el estado en memoria y guarda en disco.
+    """
     inicializar_csv()
     while True:
         puerto = buscar_puerto_arduino()
@@ -135,6 +158,8 @@ def leer_serial_continuo():
                 estado["puerto"] = "Reconectando..."
             time.sleep(2)
 
+
+# --- INTERFAZ WEB LOCAL DEL DASHBOARD (HTML + CSS + JS) ---
 HTML_DASHBOARD = """<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -241,8 +266,12 @@ refrescar();
 </html>
 """
 
+
 class Handler(BaseHTTPRequestHandler):
+    """Servidor HTTP local que sirve el dashboard web y el endpoint JSON de telemetría."""
+
     def do_GET(self):
+        """Responde con los datos en vivo en /api/datos o con la interfaz HTML en la raíz."""
         if self.path == "/api/datos":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -256,8 +285,11 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(HTML_DASHBOARD.encode("utf-8"))
 
     def log_message(self, format, *args):
+        """Suprime los registros de peticiones HTTP en consola para mantener la salida limpia."""
         pass
 
+
+# --- PUNTO DE ENTRADA PRINCIPAL ---
 if __name__ == "__main__":
     threading.Thread(target=leer_serial_continuo, daemon=True).start()
     print(f"Dashboard abierto en: http://localhost:{PUERTO_WEB}")
