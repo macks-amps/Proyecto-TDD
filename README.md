@@ -39,7 +39,7 @@
 ├── hardware/
 │   ├── fotos/
 │   ├── BOM.xlsx
-│   └── esquematico.pdf
+│   └── esquematico.png
 ├── testing/
 │   ├── prueba_llave_1/
 │   ├── prueba_llave_2/
