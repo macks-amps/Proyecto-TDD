@@ -40,4 +40,4 @@ Proyecto-TDD/
 └── docs/                      # Informes previos y presentación final
     ├── Informe TDD 1.pdf      # Entrega 1: Problemática y diseño conceptual
     ├── Informe TDD 2.pdf      # Entrega 2: Prototipo Alpha y pruebas desacopladas
-    └── presentacion_E3.pdf    # Diapositivas de exposición Avance #3
+    └── presentacion_E3.pptx    # Diapositivas de exposición Avance #3
