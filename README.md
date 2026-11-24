@@ -44,7 +44,6 @@
 │   ├── prueba_llave_1/
 │   ├── prueba_llave_2/
 │   └── protocolo_pruebas.pdf
-│   └── video_1_prueba.mov
-│   └── video_2_prueba.mov
+│   └── videos_pruebas.md
 ├── FUENTES.md
 └── README.md
